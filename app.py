@@ -13,7 +13,7 @@ st.title("🚀 YOLO x Gemini 智能視覺演示")
 try:
     API_KEY = st.secrets["GEMINI_API_KEY"]
     genai.configure(api_key=API_KEY)
-    gemini_model = genai.GenerativeModel('models/gemini-1.5-flash')
+    gemini_model = genai.GenerativeModel('gemini-1.5-flash-latest')
 except Exception as e:
     st.error("❌ 未在 Secrets 中找到 GEMINI_API_KEY，請檢查 Advanced Settings。")
 
