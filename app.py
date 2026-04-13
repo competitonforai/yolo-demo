@@ -51,7 +51,7 @@ with col1:
         st.image(input_img, caption="已上傳的照片", use_container_width=True)
         
         # 3. 執行 YOLO 偵測
-        results = yolo_model(img_array)
+        results = yolo_model(img_array, conf=0.5)
         
         # 4. 繪製偵測結果框框
         res_plotted = results[0].plot()
@@ -70,20 +70,22 @@ with col2:
         st.write(f"🔍 YOLO 辨識結果: **{', '.join(detected_names)}**")
         
         if st.button("🪄 啟動 Gemini 聯想推論"):
+            # --- 就在這裡修改你的指令 (Prompt) ---
             prompt = f"""
-            視覺偵測系統發現了以下物體：{detected_names}。
-            請以「未來科學家」的口吻，用繁體中文簡短執行以下任務：
-            1. 給出這些物體的一個有趣科學冷知識。
-            2. 根據這些物體，預測一個未來可能的應用場景（例如自動駕駛或健康管理）。
+            視覺偵測系統初步發現：{detected_names}。
+            但請注意，偵測結果可能包含誤差（例如因為光線或顏色導致辨識錯誤）。
+            請你作為專業科學家，直接觀察這張圖片並執行：
+            1. 精確判斷圖中物體的真實身分（即使它的顏色很不尋常）。
+            2. 提供該物體的一個有趣科學冷知識。
+            3. 預測這類物體在未來科技（如生物工程或食品科學）的應用。
+            請用「繁體中文」回答。
             """
             
             with st.spinner('Gemini 正在連結知識圖譜...'):
-                try:
-                    response = gemini_model.generate_content(prompt)
-                    st.info("✅ 推論完成")
-                    st.markdown(f"**AI 洞察報告：**\n\n{response.text}")
-                except Exception as e:
-                    st.error(f"Gemini 呼叫失敗，請檢查 API Key 或模型名稱：{e}")
+                # 修改這裡：傳入 [prompt, input_img] 讓 Gemini 直接「看」圖
+                response = gemini_model.generate_content([prompt, input_img])
+                st.info("✅ 推論完成")
+                st.markdown(f"**AI 洞察報告：**\n\n{response.text}")
     else:
         st.warning("等待照片上傳中...")
         st.info("💡 提示：請先在左側上傳實驗照片，當 YOLO 辨識出物體後，按按鈕叫 Gemini 分析。")
