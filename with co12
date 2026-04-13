@@ -41,14 +41,27 @@ if img_file:
         st.write(f"初步辨識清單: {', '.join(labels) if labels else '未發現預設物體'}")
 
     with col2:
-        st.subheader("🧠 Gemini 深度科學分析")
+        st.subheader("🧠 Gemini 智慧推理")
         if st.button("🪄 啟動 AI 視覺推論"):
             with st.spinner('AI 正在觀察圖片細節...'):
-                # --- 關鍵修正：直接把圖片傳給 Gemini ---
-                # 這樣 Gemini 就不會被 YOLO 的標籤誤導，會自己看圖
-                prompt = "你是一位專業的科學家。請觀察這張圖片，精確辨識其中的實驗物體、食物或器材，並給出：1. 該物體的科學名稱 2. 一個有趣的科學冷知識 3. 未來的創新應用建議。請用繁體中文回答。"
-                
-                response = gemini_model.generate_content([prompt, input_img])
-                
-                st.success("推論完成！")
-                st.markdown(response.text)
+                try:
+                    # 1. 準備內容
+                    prompt = "你是一位專業的科學家。請觀察這張圖片，精確辨識其中的物體。如果顏色很奇怪（例如藍色的蛋），請解釋其可能的科學成因或是否為合成照。請用繁體中文回答。"
+                    
+                    # 2. 呼叫 API
+                    response = gemini_model.generate_content([prompt, input_img])
+                    
+                    # 3. 檢查是否有結果
+                    if response.text:
+                        st.success("推論完成！")
+                        st.markdown(response.text)
+                    else:
+                        st.warning("AI 回傳了空結果，可能是被內容過濾器擋住了。")
+                        
+                except Exception as e:
+                    # 這行最重要：它會告訴我們到底為什麼 "Doesn't work"
+                    st.error(f"發生錯誤：{str(e)}")
+                    if "API_KEY_INVALID" in str(e):
+                        st.info("提示：你的 API Key 好像無效，請檢查 Secrets。")
+                    elif "quota" in str(e).lower():
+                        st.info("提示：你的免費額度用完了，請換一個 API Key。")
