@@ -15,7 +15,7 @@ try:
     API_KEY = st.secrets["GEMINI_API_KEY"]
     genai.configure(api_key=API_KEY)
     # 使用最穩定的模型名稱
-    gemini_model = genai.GenerativeModel('gemini-1.5-flash-latest')
+    gemini_model = genai.GenerativeModel('gemini-1.5-flash')
 except Exception as e:
     st.error("❌ 未在 Secrets 中找到 GEMINI_API_KEY，或是格式錯誤。請檢查 Advanced Settings。")
 
