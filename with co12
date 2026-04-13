@@ -1,67 +1,52 @@
 import streamlit as st
 import google.generativeai as genai
 from ultralytics import YOLO
-import numpy as np
 from PIL import Image
+import numpy as np
 
-# 1. 頁面與模型設定
-st.set_page_config(page_title="AI 視覺戰情室", layout="wide")
-st.title("🔬 AI 智能視覺：YOLO + Gemini 雙腦協作")
+# 1. 基本配置
+st.set_page_config(page_title="AI 視覺分析", layout="wide")
+st.title("🔬 YOLO + Gemini 雙腦實驗室")
 
-# 讀取 Secrets
-try:
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    # 使用 Flash 版本：兼顧速度與視覺辨識力
-    gemini_model = genai.GenerativeModel('gemini-1.5-flash-latest')
-except Exception as e:
-    st.error("Secrets 設定錯誤，請確認 GEMINI_API_KEY。")
+# 2. 安全讀取 Secrets
+if "GEMINI_API_KEY" not in st.secrets:
+    st.error("❌ 錯誤：請在 Streamlit Secrets 設定 GEMINI_API_KEY")
+    st.stop()
+
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+model_gemini = genai.GenerativeModel('gemini-1.5-flash-latest')
 
 @st.cache_resource
 def load_yolo():
-    return YOLO('yolov8n.pt') # 保持 Nano 版確保 Streamlit 跑得動
+    return YOLO('yolov8n.pt')
 
-yolo_model = load_yolo()
+yolo = load_yolo()
 
-# 2. 介面設計
-img_file = st.file_uploader("📤 上傳實驗照片進行深度分析", type=['jpg', 'png', 'jpeg'])
+# 3. 檔案上傳
+img_file = st.file_uploader("📤 上傳一張照片", type=['jpg', 'png', 'jpeg'])
 
 if img_file:
-    col1, col2 = st.columns([1, 1])
-    input_img = Image.open(img_file)
-
+    # 讀取圖片
+    img = Image.open(img_file)
+    
+    col1, col2 = st.columns(2)
+    
     with col1:
-        st.subheader("🤖 YOLO 即時標註")
-        # 執行 YOLO (設定信心門檻為 0.2 提高敏感度)
-        results = yolo_model(input_img, conf=0.2)
-        res_plotted = results[0].plot()
-        st.image(res_plotted, use_container_width=True)
+        st.subheader("🤖 YOLO 偵測")
+        results = yolo(img, conf=0.25)
+        res_img = results[0].plot()
+        st.image(res_img, use_container_width=True)
         
-        # 取得標籤
         labels = [results[0].names[int(c)] for c in results[0].boxes.cls]
-        st.write(f"初步辨識清單: {', '.join(labels) if labels else '未發現預設物體'}")
+        st.write(f"初步偵測結果: {', '.join(labels) if labels else '未發現物體'}")
 
     with col2:
-        st.subheader("🧠 Gemini 智慧推理")
-        if st.button("🪄 啟動 AI 視覺推論"):
-            with st.spinner('AI 正在觀察圖片細節...'):
+        st.subheader("🧠 Gemini 深度分析")
+        if st.button("🪄 啟動 AI 推論"):
+            with st.spinner('AI 正在看圖說故事...'):
                 try:
-                    # 1. 準備內容
-                    prompt = "你是一位專業的科學家。請觀察這張圖片，精確辨識其中的物體。如果顏色很奇怪（例如藍色的蛋），請解釋其可能的科學成因或是否為合成照。請用繁體中文回答。"
-                    
-                    # 2. 呼叫 API
-                    response = gemini_model.generate_content([prompt, input_img])
-                    
-                    # 3. 檢查是否有結果
-                    if response.text:
-                        st.success("推論完成！")
-                        st.markdown(response.text)
-                    else:
-                        st.warning("AI 回傳了空結果，可能是被內容過濾器擋住了。")
-                        
+                    prompt = "請分析圖片中的物體，給出科學名稱與一則冷知識。用繁體中文回答。"
+                    response = model_gemini.generate_content([prompt, img])
+                    st.write(response.text)
                 except Exception as e:
-                    # 這行最重要：它會告訴我們到底為什麼 "Doesn't work"
-                    st.error(f"發生錯誤：{str(e)}")
-                    if "API_KEY_INVALID" in str(e):
-                        st.info("提示：你的 API Key 好像無效，請檢查 Secrets。")
-                    elif "quota" in str(e).lower():
-                        st.info("提示：你的免費額度用完了，請換一個 API Key。")
+                    st.error(f"API 呼叫失敗: {e}")
